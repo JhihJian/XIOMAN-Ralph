@@ -62,8 +62,8 @@ export async function reflect(
   if (reflection.patterns.length > 0) {
     await updateMemoryFile(
       memoryDir,
-      'semantic',
-      `\n${reflection.patterns.map((p) => `- ${p}`).join('\n')}`
+      'procedural',
+      `\n### Patterns\n${reflection.patterns.map((p) => `- ${p}`).join('\n')}`
     );
   }
 
@@ -71,7 +71,7 @@ export async function reflect(
     await updateMemoryFile(
       memoryDir,
       'procedural',
-      `\n${reflection.antiPatterns.map((p) => `- ${p}`).join('\n')}`
+      `\n### Anti-Patterns\n${reflection.antiPatterns.map((p) => `- ${p}`).join('\n')}`
     );
   }
 
