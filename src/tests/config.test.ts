@@ -1,43 +1,46 @@
 // src/tests/config.test.ts
 import { describe, it, expect, afterEach } from 'vitest';
+import { getConfig } from '../config.js';
 
 describe('getConfig', () => {
-  const origProvider = process.env.RALPH_PROVIDER;
-  const origModel = process.env.RALPH_MODEL;
-  const origWorkspace = process.env.RALPH_WORKSPACE;
+  const originalEnv = { ...process.env };
 
   afterEach(() => {
-    // 还原环境变量
-    if (origProvider === undefined) delete process.env.RALPH_PROVIDER;
-    else process.env.RALPH_PROVIDER = origProvider;
-    if (origModel === undefined) delete process.env.RALPH_MODEL;
-    else process.env.RALPH_MODEL = origModel;
-    if (origWorkspace === undefined) delete process.env.RALPH_WORKSPACE;
-    else process.env.RALPH_WORKSPACE = origWorkspace;
+    // Restore env vars to their original state
+    process.env.RALPH_PROVIDER = originalEnv.RALPH_PROVIDER;
+    process.env.RALPH_MODEL = originalEnv.RALPH_MODEL;
+    process.env.RALPH_WORKSPACE = originalEnv.RALPH_WORKSPACE;
+    // Remove keys that were not originally set
+    if (!originalEnv.RALPH_PROVIDER) delete process.env.RALPH_PROVIDER;
+    if (!originalEnv.RALPH_MODEL) delete process.env.RALPH_MODEL;
+    if (!originalEnv.RALPH_WORKSPACE) delete process.env.RALPH_WORKSPACE;
   });
 
-  it('returns defaults when env vars are absent', () => {
+  it('returns defaults when env vars are not set', () => {
     delete process.env.RALPH_PROVIDER;
     delete process.env.RALPH_MODEL;
     delete process.env.RALPH_WORKSPACE;
-    // 直接测试默认值逻辑（避免 ESM 缓存问题）
-    const provider = process.env.RALPH_PROVIDER ?? 'anthropic';
-    const model = process.env.RALPH_MODEL ?? 'claude-sonnet-4-5';
-    const workspace = process.env.RALPH_WORKSPACE ?? '/workspace';
-    expect(provider).toBe('anthropic');
-    expect(model).toBe('claude-sonnet-4-5');
-    expect(workspace).toBe('/workspace');
+    const config = getConfig();
+    expect(config.provider).toBe('anthropic');
+    expect(config.model).toBe('claude-sonnet-4-5');
+    expect(config.workspaceDir).toBe('/workspace');
   });
 
-  it('reads from env vars when set', () => {
+  it('uses RALPH_PROVIDER when set', () => {
     process.env.RALPH_PROVIDER = 'openai';
+    const config = getConfig();
+    expect(config.provider).toBe('openai');
+  });
+
+  it('uses RALPH_MODEL when set', () => {
     process.env.RALPH_MODEL = 'gpt-4o';
-    process.env.RALPH_WORKSPACE = '/custom';
-    const provider = process.env.RALPH_PROVIDER ?? 'anthropic';
-    const model = process.env.RALPH_MODEL ?? 'claude-sonnet-4-5';
-    const workspace = process.env.RALPH_WORKSPACE ?? '/workspace';
-    expect(provider).toBe('openai');
-    expect(model).toBe('gpt-4o');
-    expect(workspace).toBe('/custom');
+    const config = getConfig();
+    expect(config.model).toBe('gpt-4o');
+  });
+
+  it('uses RALPH_WORKSPACE when set', () => {
+    process.env.RALPH_WORKSPACE = '/custom/path';
+    const config = getConfig();
+    expect(config.workspaceDir).toBe('/custom/path');
   });
 });

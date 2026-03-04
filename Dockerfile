@@ -11,6 +11,7 @@ COPY . .
 RUN npm run build && npm prune --omit=dev
 
 # 工作目录（运行时挂载）
+RUN mkdir -p /workspace && chown node:node /workspace
 WORKDIR /workspace
 
 USER node
