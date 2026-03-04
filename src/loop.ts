@@ -56,7 +56,7 @@ export async function runLoop(options: LoopOptions): Promise<void> {
     } catch (error) {
       const err = error as Error;
       console.error(`\n[ERROR] 迭代 #${iteration} 出错: ${err.message}`);
-      iteration++;
+      // 错误已记录，继续下一轮（iteration 在循环开头已递增）
     }
 
     if (shouldStop(iteration, options)) {

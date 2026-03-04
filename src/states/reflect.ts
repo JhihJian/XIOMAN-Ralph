@@ -40,7 +40,8 @@ ${context.goal}
 }
 
 export function parseReflection(response: string): Reflection {
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  const stripped = response.replace(/```(?:json)?\s*/g, '').replace(/```/g, '');
+  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error(`REFLECT 响应无法解析为 JSON: ${response.slice(0, 200)}`);
   }

@@ -50,7 +50,9 @@ stopReason 可以是: null | "目标已达成" | "目标无法达成: <原因>"
 }
 
 export function parseDecision(response: string, _iteration: number): Decision {
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  // 先剥离 markdown 代码块（如 ```json ... ``` 或 ``` ... ```）
+  const stripped = response.replace(/```(?:json)?\s*/g, '').replace(/```/g, '');
+  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error(`DECIDE 响应无法解析为 JSON: ${response.slice(0, 200)}`);
   }
