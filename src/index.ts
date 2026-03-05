@@ -22,7 +22,7 @@ program
       const memoryDir = `${config.workspaceDir}/memory`;
 
       console.log('Ralph 启动');
-      console.log(`模型: ${config.provider}/${config.model}`);
+      console.log(`模型: ${config.model}`);
       console.log(`Workspace: ${config.workspaceDir}`);
       console.log(`记忆目录: ${memoryDir}`);
 

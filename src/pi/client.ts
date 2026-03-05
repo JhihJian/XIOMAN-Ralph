@@ -1,86 +1,60 @@
 // src/pi/client.ts
-import {
-  createAgentSession,
-  SessionManager,
-  createCodingTools,
-  AuthStorage,
-  ModelRegistry,
-} from '@mariozechner/pi-coding-agent';
-import { getModel } from '@mariozechner/pi-ai';
-import type { AgentSessionEvent } from '@mariozechner/pi-coding-agent';
+import { spawn } from 'child_process';
 import { getConfig } from '../config.js';
 
-function getConfiguredModel() {
-  const { provider, model } = getConfig();
-  // getModel 的参数类型是泛型，用 as any 绕过 strict provider/model 类型检查
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m = getModel(provider as any, model as any);
-  if (!m) {
-    throw new Error(
-      `未知模型: ${provider}/${model}。请检查 RALPH_PROVIDER 和 RALPH_MODEL 环境变量。`
-    );
-  }
-  return m;
+interface ClaudeResult {
+  output: string;
+  exitCode: number;
 }
 
-type AgentSession = Awaited<ReturnType<typeof createAgentSession>>['session'];
+async function runClaude(prompt: string, tools: boolean): Promise<string> {
+  const { model, workspaceDir, baseUrl } = getConfig();
 
-function collectTextOutput(session: AgentSession): Promise<string> {
-  return new Promise((resolve) => {
-    let result = '';
-    const unsubscribe = session.subscribe((event: AgentSessionEvent) => {
-      if (
-        event.type === 'message_update' &&
-        event.assistantMessageEvent.type === 'text_delta'
-      ) {
-        result += event.assistantMessageEvent.delta;
+  const args = tools
+    ? ['--print', '--allowedTools', 'Read,Write,Edit,Bash(*)', '-p', prompt]
+    : ['--print', '--no-tools', '-p', prompt];
+
+  const env = {
+    ...process.env,
+    ANTHROPIC_BASE_URL: baseUrl,
+    MODEL: model,
+  };
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('claude', args, {
+      cwd: workspaceDir,
+      env,
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data: Buffer) => {
+      stdout += data.toString();
+    });
+
+    child.stderr.on('data', (data: Buffer) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code: number) => {
+      if (code !== 0) {
+        reject(new Error(`Claude CLI failed (${code}): ${stderr || stdout}`));
+      } else {
+        resolve(stdout);
       }
-      if (event.type === 'agent_end') {
-        unsubscribe();
-        resolve(result);
-      }
+    });
+
+    child.on('error', (err: Error) => {
+      reject(new Error(`Failed to spawn claude: ${err.message}`));
     });
   });
 }
 
-/**
- * 纯推理调用：用于 DECIDE 和 REFLECT 阶段（无工具）
- */
 export async function callLLM(prompt: string): Promise<string> {
-  const authStorage = AuthStorage.create();
-  const modelRegistry = new ModelRegistry(authStorage);
-
-  const { session } = await createAgentSession({
-    sessionManager: SessionManager.inMemory(),
-    model: getConfiguredModel(),
-    tools: [],
-    authStorage,
-    modelRegistry,
-  });
-
-  const outputPromise = collectTextOutput(session);
-  await session.prompt(prompt);
-  return outputPromise;
+  return runClaude(prompt, false);
 }
 
-/**
- * 带工具调用：用于 ACT 阶段（read, write, edit, bash）
- */
 export async function callAgent(prompt: string): Promise<string> {
-  const { workspaceDir } = getConfig();
-  const authStorage = AuthStorage.create();
-  const modelRegistry = new ModelRegistry(authStorage);
-
-  const { session } = await createAgentSession({
-    cwd: workspaceDir,
-    sessionManager: SessionManager.inMemory(),
-    model: getConfiguredModel(),
-    tools: createCodingTools(workspaceDir),
-    authStorage,
-    modelRegistry,
-  });
-
-  const outputPromise = collectTextOutput(session);
-  await session.prompt(prompt);
-  return outputPromise;
+  return runClaude(prompt, true);
 }
