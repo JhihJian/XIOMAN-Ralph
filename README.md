@@ -38,6 +38,12 @@ workspace/memory/
 
 ---
 
+## Prerequisites
+
+- Install Claude CLI: `npm install -g @anthropic-ai/claude-code`
+
+---
+
 ## 快速开始
 
 ### 1. 构建镜像
@@ -81,7 +87,7 @@ docker run --rm -v $(pwd):/workspace ralph init
 ```bash
 docker run --rm -it \
   -v $(pwd):/workspace \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e ANTHROPIC_AUTH_TOKEN=sk-ant-... \
   ralph
 ```
 
@@ -93,13 +99,13 @@ Ralph 将持续运行，直到判断目标已达成或无法达成。
 
 ```bash
 # 持续运行（默认）
-docker run --rm -it -v $(pwd):/workspace -e ANTHROPIC_API_KEY=... ralph
+docker run --rm -it -v $(pwd):/workspace -e ANTHROPIC_AUTH_TOKEN=... ralph
 
 # 只执行一次迭代（调试用）
-docker run --rm -it -v $(pwd):/workspace -e ANTHROPIC_API_KEY=... ralph run --once
+docker run --rm -it -v $(pwd):/workspace -e ANTHROPIC_AUTH_TOKEN=... ralph run --once
 
 # 限制最大迭代次数
-docker run --rm -it -v $(pwd):/workspace -e ANTHROPIC_API_KEY=... ralph run --max-iterations 20
+docker run --rm -it -v $(pwd):/workspace -e ANTHROPIC_AUTH_TOKEN=... ralph run --max-iterations 20
 
 # 初始化记忆文件
 docker run --rm -v $(pwd):/workspace ralph init
@@ -113,24 +119,10 @@ docker run --rm -v $(pwd):/workspace ralph init
 
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
-| `RALPH_PROVIDER` | `anthropic` | LLM 提供商 |
-| `RALPH_MODEL` | `claude-sonnet-4-5` | 模型名称 |
-| `RALPH_WORKSPACE` | `/workspace` | 工作目录（容器内路径） |
-
-### 支持的模型提供商
-
-Ralph 使用 [pi-coding-agent](https://github.com/mariozechner/pi-mono) SDK，支持 20+ 个提供商：
-
-```bash
-# Anthropic
--e RALPH_PROVIDER=anthropic -e ANTHROPIC_API_KEY=sk-ant-...
-
-# OpenAI
--e RALPH_PROVIDER=openai -e RALPH_MODEL=gpt-4o -e OPENAI_API_KEY=sk-...
-
-# Google Gemini
--e RALPH_PROVIDER=google -e RALPH_MODEL=gemini-2.0-flash -e GOOGLE_API_KEY=...
-```
+| `ANTHROPIC_AUTH_TOKEN` | (required) | Anthropic API 认证令牌 |
+| `ANTHROPIC_BASE_URL` | `https://api.anthropic.com` | API 端点 |
+| `MODEL` | `claude-sonnet-4-5` | 模型名称 |
+| `RALPH_WORKSPACE` | `/workspace` | 工作目录 |
 
 ---
 
@@ -147,7 +139,7 @@ npm run build
 npm test
 
 # 开发模式（不编译直接运行）
-ANTHROPIC_API_KEY=sk-ant-... npm run dev -- init
+ANTHROPIC_AUTH_TOKEN=sk-ant-... npm run dev -- init
 ```
 
 ### 项目结构
@@ -161,7 +153,7 @@ src/
 ├── memory/
 │   └── manager.ts        # 四层记忆读写
 ├── pi/
-│   └── client.ts         # pi-coding-agent SDK 封装
+│   └── client.ts         # Claude CLI 子进程封装
 └── states/
     ├── sense.ts           # SENSE 阶段
     ├── decide.ts          # DECIDE 阶段
